@@ -106,7 +106,7 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
             
             $this->define_constants();
             $this->includes();
-            $this->init_hooks();            
+            $this->init();            
 
         }
 
@@ -156,6 +156,7 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
         
             // Load this extension after plugins loaded, we need TwitchPress core to load first mainly.
             add_action( 'plugins_loaded',      array( $this, 'init_hooks' ), 0 );
+            add_action( 'plugins_loaded',      array( $this, 'init_filters' ), 0 );
 
             register_activation_hook( __FILE__, array( 'TwitchPress_Boilerplate_Install', 'install' ) );
             
@@ -178,6 +179,12 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
         
         public function init_filters() {
 
+            // Add sections and settings to core pages.
+            add_filter( 'twitchpress_get_sections_users', array( $this, 'settings_add_section_users' ) );
+            add_filter( 'twitchpress_get_settings_users', array( $this, 'settings_add_options_users' ) );
+
+            // Other hooks.
+            add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );            
                         
         }
         
