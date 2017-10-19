@@ -53,9 +53,9 @@ if ( !in_array( 'channel-solution-for-twitch/twitchpress.php', apply_filters( 'a
 /**
  * Required minimums and constants
  */
-define( 'TWITCHPRESS_SYNC_VERSION', '3.2.0' );
+define( 'TWITCHPRESS_SYNC_VERSION', '1.0.0' );
 define( 'TWITCHPRESS_SYNC_MIN_PHP_VER', '5.6.0' );
-define( 'TWITCHPRESS_SYNC_MIN_WC_VER', '2.5.0' );
+define( 'TWITCHPRESS_SYNC_MIN_TP_VER', '1.2.6' );
 define( 'TWITCHPRESS_SYNC_MAIN_FILE', __FILE__ );
 define( 'TWITCHPRESS_SYNC_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 define( 'TWITCHPRESS_SYNC_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
@@ -75,7 +75,7 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
          * 
          * @version 1.0
          */
-        public static function get_instance() {
+        public static function instance() {
             if ( null === self::$instance ) {
                 self::$instance = new self();
             }
@@ -105,9 +105,9 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
         protected function __construct() {
             
             $this->define_constants();
-            $this->includes();
-            $this->init();            
-
+            
+            // Load files and register actions required before TwitchPress core inits.
+            add_action( 'before_twitchpress_init', array( $this, 'pre_twitchpress_init' ) );            
         }
 
         /**
@@ -133,35 +133,69 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
             if ( ! defined( 'TWITCHPRESS_SHOW_SETTINGS_COMMANDS' ) ) { define( 'TWITCHPRESS_SHOW_SETTINGS_COMMANDS', true ); }
             if ( ! defined( 'TWITCHPRESS_SHOW_SETTINGS_CONTENT' ) )  { define( 'TWITCHPRESS_SHOW_SETTINGS_CONTENT', true ); }      
         }  
-
-        /**
-         * Include required files.
-         * 
-         * @version 1.0
-         */
-        public function includes() {
-            include_once( 'includes/function.twitchpress-sync-core.php' );
+        
+        public function pre_twitchpress_init() {
+            $this->load_dependencies();
             
-            if ( twitchpress_is_request( 'admin' ) ) {
-                include_once( 'includes/class.twitchpress-sync-uninstall.php' );
-            }      
+            /**
+                Do things here required before TwitchPress core plugin does init. 
+            */
+            
+            add_action( 'twitchpress_init', array( $this, 'after_twitchpress_init' ) );
         }
+        
+        public function after_twitchpress_init() {
+            $this->attach_hooks();    
+        }
+        
+        /**
+         * Load all plugin dependencies.
+         */
+        public function load_dependencies() {
 
+            // Include Classes
+            // i.e. require_once( plugin_basename( 'classes/class-wc-connect-logger.php' ) );
+            
+            // Create Class Objects
+            // i.e. $logger                = new WC_Connect_Logger( new WC_Logger() );
+            
+            // Set Class Objects In Singleton
+            // i.e. $this->set_logger( $logger );
+
+            include_once( 'functions.twitchpress-um-core.php' );
+            
+            // When doing admin_init load admin side dependencies.             
+            add_action( 'admin_init', array( $this, 'load_admin_dependencies' ) );
+        }
+        
+        public function load_admin_dependencies() {
+             
+        }
+        
         /**
          * Hook into actions and filters.
          * 
          * @version 1.0
          */
-        private function init() {
-        
-            // Load this extension after plugins loaded, we need TwitchPress core to load first mainly.
-            add_action( 'plugins_loaded',      array( $this, 'init_hooks' ), 0 );
-            add_action( 'plugins_loaded',      array( $this, 'init_filters' ), 0 );
+        private function attach_hooks() {
 
-            register_activation_hook( __FILE__, array( 'TwitchPress_Boilerplate_Install', 'install' ) );
+            // Filters
+            add_filter( 'twitchpress_get_sections_users', array( $this, 'settings_add_section_users' ), 50 );
+            add_filter( 'twitchpress_get_settings_users', array( $this, 'settings_add_options_users' ), 50 );
+            add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
+                                                    
+            // Actions
             
-            // Do not confuse deactivation of a plugin with deletion of a plugin - two very different requests.
-            register_deactivation_hook( __FILE__, array( 'TwitchPress_Boilerplate_Uninstall', 'deactivate' ) );
+            // Shortcodes
+            add_shortcode( apply_filters( "twitchpress_connect_button_filter", 'twitchpress_connect_button' ), array( $this, 'shortcode_connect_button' ) );                        
+        }
+
+        public static function install() {
+            
+        }
+        
+        public static function deactivate() { 
+            
         }
                       
         /**
@@ -293,7 +327,18 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
         }                                                         
     }
     
-    $GLOBALS['twitchpress_boilerplate'] = TwitchPress_Boilerplate::get_instance();
-
 endif;    
 
+if( !function_exists( 'TwitchPress_Boiler_Ext' ) ) {
+
+    function TwitchPress_Boiler_Ext() {        
+        return TwitchPress_Boiler::instance();
+    }
+
+    // Global for backwards compatibility.
+    $GLOBALS['twitchpress-boiler'] = TwitchPress_Boiler_Ext(); 
+}
+
+// Activation and Deactivation hooks.
+register_activation_hook( __FILE__, array( 'TwitchPress_Boiler', 'install' ) );
+register_deactivation_hook( __FILE__, array( 'TwitchPress_Boiler', 'deactivate' ) );
