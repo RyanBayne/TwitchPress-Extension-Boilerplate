@@ -55,7 +55,7 @@ if ( !in_array( 'channel-solution-for-twitch/twitchpress.php', apply_filters( 'a
  */
 define( 'TWITCHPRESS_SYNC_VERSION', '1.0.0' );
 define( 'TWITCHPRESS_SYNC_MIN_PHP_VER', '5.6.0' );
-define( 'TWITCHPRESS_SYNC_MIN_TP_VER', '1.2.6' );
+define( 'TWITCHPRESS_SYNC_MIN_TP_VER', '1.6.1' );
 define( 'TWITCHPRESS_SYNC_MAIN_FILE', __FILE__ );
 define( 'TWITCHPRESS_SYNC_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 define( 'TWITCHPRESS_SYNC_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
@@ -120,7 +120,7 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
             $upload_dir = wp_upload_dir();
             
             // Main (package) constants.
-            if ( ! defined( 'TWITCHPRESS_SYNC_ABSPATH' ) )  {  define( 'TWITCHPRESS_SYNC_ABSPATH', __FILE__ ); }
+            if ( ! defined( 'TWITCHPRESS_SYNC_ABSPATH' ) )  { define( 'TWITCHPRESS_SYNC_ABSPATH', __FILE__ ); }
             if ( ! defined( 'TWITCHPRESS_SYNC_BASENAME' ) ) { define( 'TWITCHPRESS_SYNC_BASENAME', plugin_basename( __FILE__ ) ); }
             if ( ! defined( 'TWITCHPRESS_SYNC_DIR_PATH' ) ) { define( 'TWITCHPRESS_SYNC_DIR_PATH', plugin_dir_path( __FILE__ ) ); }
             
@@ -133,7 +133,7 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
             if ( ! defined( 'TWITCHPRESS_SHOW_SETTINGS_COMMANDS' ) ) { define( 'TWITCHPRESS_SHOW_SETTINGS_COMMANDS', true ); }
             if ( ! defined( 'TWITCHPRESS_SHOW_SETTINGS_CONTENT' ) )  { define( 'TWITCHPRESS_SHOW_SETTINGS_CONTENT', true ); }      
         }  
-        
+                  
         public function pre_twitchpress_init() {
             $this->load_dependencies();
             
@@ -162,8 +162,6 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
             // Set Class Objects In Singleton
             // i.e. $this->set_logger( $logger );
 
-            include_once( 'functions.twitchpress-um-core.php' );
-            
             // When doing admin_init load admin side dependencies.             
             add_action( 'admin_init', array( $this, 'load_admin_dependencies' ) );
         }
@@ -183,7 +181,8 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
             add_filter( 'twitchpress_get_sections_users', array( $this, 'settings_add_section_users' ), 50 );
             add_filter( 'twitchpress_get_settings_users', array( $this, 'settings_add_options_users' ), 50 );
             add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
-                                                    
+            add_filter( 'twitchpress_update_system_scopes_status', array( $this, 'update_system_scopes_status' ), 1, 1 );
+                                                   
             // Actions
             
             // Shortcodes
@@ -212,16 +211,41 @@ if ( ! class_exists( 'TwitchPress_Boilerplate' ) ) :
         }
         
         public function init_filters() {
-
             // Add sections and settings to core pages.
             add_filter( 'twitchpress_get_sections_users', array( $this, 'settings_add_section_users' ) );
             add_filter( 'twitchpress_get_settings_users', array( $this, 'settings_add_options_users' ) );
 
             // Other hooks.
-            add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );            
-                        
+            add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
+            add_filter( 'twitchpress_update_system_scopes_status', array( $this, 'update_system_scopes_status' ), 1, 1 );                        
         }
         
+        /**
+        * Add scopes information (usually from extensions) to the 
+        * system scopes status which is used to tell us what scopes are
+        * required for the current system.
+        * 
+        * @param mixed $new_array
+        */
+        public function update_system_scopes_status( $filtered_array ) {
+            
+            $scopes = array();
+            
+            // Scopes for admin only or main account functionality that is always used. 
+            $scopes['admin']['twitchpress-extension-boilerplate']['required'] = array();
+            
+            // Scopes for admin only or main account features that may not be used.
+            $scopes['admin']['twitchpress-extension-boilerplate']['optional'] = array(); 
+                        
+            // Scopes for functionality that is always used. 
+            $scopes['public']['twitchpress-extension-boilerplate']['required'] = array();
+            
+            // Scopes for features that may not be used.
+            $scopes['public']['twitchpress-extension-boilerplate']['optional'] = array(); 
+                        
+            return array_merge_recursive( $filtered_array, $scopes );      
+        }
+                
         /**
         * Styles for login page hooked by login_enqueue_scripts
         * 

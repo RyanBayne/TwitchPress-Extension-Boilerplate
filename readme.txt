@@ -7,7 +7,7 @@ Tags: Twitch, TwitchPress, Twitch.tv, TwitchPress Extension, TwitchPress Boilerp
 Requires at least: 4.4
 Tested up to: 4.8
 Stable tag: 1.0.0
-Minimum core version: 1.5.2
+Minimum core version: 1.6.1
 Requires PHP: 5.6
                         
 Create new TwitchPress extensions using this boilerplate.
