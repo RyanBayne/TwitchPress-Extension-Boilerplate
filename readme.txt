@@ -1,4 +1,4 @@
-=== TwitchPress Sync Extension ===
+=== TwitchPress Extension Boilerplate ===
 Contributors: Ryan Bayne
 Donate link: https://www.patreon.com/zypherevolved
 License: GPLv3
